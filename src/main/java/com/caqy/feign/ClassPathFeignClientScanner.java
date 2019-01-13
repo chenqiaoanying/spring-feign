@@ -116,6 +116,9 @@ public class ClassPathFeignClientScanner extends ClassPathBeanDefinitionScanner 
             } catch (InstantiationException | IllegalAccessException e) {
                 LoggerFactory.getLogger(this.getClass()).warn("error on create decoder cause by {0}", e.getCause());
             }
+
+            boolean autoSetCookies = (Boolean) feignClientAnnotationAttr.getOrDefault("autoSetCookies", true);
+            definition.getPropertyValues().add("autoSetCookies", autoSetCookies);
         }
     }
 

@@ -14,6 +14,8 @@ public @interface FeignClient {
 
     String url();
 
+    boolean autoSetCookies() default true;
+
     Class<? extends Encoder> encoderClass() default Encoder.class;
 
     Class<? extends Decoder> decoderClass() default Decoder.class;
