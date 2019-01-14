@@ -3,6 +3,9 @@ package com.caqy.feign;
 import feign.RequestTemplate;
 import feign.codec.EncodeException;
 import feign.codec.Encoder;
+import feign.form.ContentType;
+import feign.form.FormData;
+import feign.form.FormEncoder;
 import feign.jackson.JacksonEncoder;
 import feign.jaxb.JAXBContextFactory;
 import feign.jaxb.JAXBEncoder;
@@ -18,6 +21,7 @@ class DefaultEncoder implements Encoder {
     private Encoder jacksonEncoder;
     private Encoder jaxbEncoder;
     private Encoder protoEncoder;
+    private Encoder formEncoder;
     private Encoder defaultEncoder;
 
     private DefaultEncoder() {
@@ -41,6 +45,7 @@ class DefaultEncoder implements Encoder {
                 throw new EncodeException("Fail to encode in protobufEncoder", e);
             }
         };
+        formEncoder = new FormEncoder();
         defaultEncoder = new Encoder.Default();
     }
 
@@ -65,6 +70,8 @@ class DefaultEncoder implements Encoder {
             } else if (contentTypes.stream().anyMatch(s -> s.endsWith("/x-protobuf"))) {
                 protoEncoder.encode(object, bodyType, template);
                 return;
+            } else if(contentTypes.stream().anyMatch(s->s.endsWith("/form-data"))){
+                formEncoder.encode(object, bodyType, template);
             }
         }
         defaultEncoder.encode(object, bodyType, template);
