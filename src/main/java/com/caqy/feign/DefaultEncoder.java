@@ -1,20 +1,19 @@
 package com.caqy.feign;
 
+import feign.Request;
 import feign.RequestTemplate;
 import feign.codec.EncodeException;
 import feign.codec.Encoder;
-import feign.form.ContentType;
-import feign.form.FormData;
 import feign.form.FormEncoder;
 import feign.jackson.JacksonEncoder;
 import feign.jaxb.JAXBContextFactory;
 import feign.jaxb.JAXBEncoder;
+import okhttp3.MediaType;
 
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Type;
-import java.util.Collection;
 
 class DefaultEncoder implements Encoder {
 
@@ -38,7 +37,7 @@ class DefaultEncoder implements Encoder {
                 if (messageClass != null && messageClass.isAssignableFrom(typeClass)) {
                     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
                     typeClass.getMethod("writeTo", OutputStream.class).invoke(object, outputStream);
-                    template.body(outputStream.toByteArray(), null);
+                    template.body(Request.Body.encoded(outputStream.toByteArray(), null));
                 }
                 throw new EncodeException(String.format("Fail to encode in protobufEncoder because %s is not a proto class", body.getTypeName()));
             } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException | ClassNotFoundException e) {
@@ -59,21 +58,28 @@ class DefaultEncoder implements Encoder {
 
     @Override
     public void encode(Object object, Type bodyType, RequestTemplate template) throws EncodeException {
-        if (template.headers().containsKey("Content-Type")) {
-            Collection<String> contentTypes = template.headers().get("Content-Type");
-            if (contentTypes.stream().anyMatch(s -> s.endsWith("/json"))) {
-                jacksonEncoder.encode(object, bodyType, template);
-                return;
-            } else if (contentTypes.stream().anyMatch(s -> s.endsWith("/xml"))) {
-                jaxbEncoder.encode(object, bodyType, template);
-                return;
-            } else if (contentTypes.stream().anyMatch(s -> s.endsWith("/x-protobuf"))) {
-                protoEncoder.encode(object, bodyType, template);
-                return;
-            } else if(contentTypes.stream().anyMatch(s->s.endsWith("/form-data"))){
-                formEncoder.encode(object, bodyType, template);
+        MediaType mediaType = Utils.getMediaTypeFromHeaders(template.headers());
+        if (mediaType == null) {
+            defaultEncoder.encode(object, bodyType, template);
+        } else {
+            switch (mediaType.subtype()) {
+                case "json":
+                    jacksonEncoder.encode(object, bodyType, template);
+                    break;
+                case "xml":
+                    jaxbEncoder.encode(object, bodyType, template);
+                    break;
+                case "x-protobuf":
+                    protoEncoder.encode(object, bodyType, template);
+                    break;
+                case "form-data":
+                case "x-www-form-urlencoded":
+                    formEncoder.encode(object, bodyType, template);
+                    break;
+                default:
+                    defaultEncoder.encode(object, bodyType, template);
+                    break;
             }
         }
-        defaultEncoder.encode(object, bodyType, template);
     }
 }

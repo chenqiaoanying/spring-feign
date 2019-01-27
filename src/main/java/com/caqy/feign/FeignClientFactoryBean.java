@@ -3,6 +3,7 @@ package com.caqy.feign;
 import feign.*;
 import feign.codec.Decoder;
 import feign.codec.Encoder;
+import feign.okhttp.OkHttpClient;
 import feign.slf4j.Slf4jLogger;
 import okhttp3.Cookie;
 import okhttp3.CookieJar;

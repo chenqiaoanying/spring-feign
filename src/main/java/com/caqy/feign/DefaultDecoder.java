@@ -7,6 +7,7 @@ import feign.codec.DecodeException;
 import feign.codec.Decoder;
 import feign.jackson.JacksonDecoder;
 import feign.jaxb.JAXBContextFactory;
+import okhttp3.MediaType;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -86,16 +87,20 @@ class DefaultDecoder implements Decoder {
 
     @Override
     public Object decode(Response response, Type type) throws IOException, FeignException {
-        if (response.headers().containsKey("Content-Type")) {
-            Collection<String> contentTypes = response.headers().get("Content-Type");
-            if (contentTypes.stream().anyMatch(s -> s.contains("/json"))) {
-                return jacksonDecoder.decode(response, type);
-            } else if (contentTypes.stream().anyMatch(s -> s.contains("/xml"))) {
-                return jaxbDecoder.decode(response, type);
-            } else if (contentTypes.stream().anyMatch(s -> s.contains("/x-protobuf"))) {
-                return protobufDecoder.decode(response, type);
+        MediaType mediaType = Utils.getMediaTypeFromHeaders(response.headers());
+        if (mediaType == null) {
+            return defaultDecoder.decode(response, type);
+        } else {
+            switch (mediaType.subtype()) {
+                case "json":
+                    return jacksonDecoder.decode(response, type);
+                case "xml":
+                    return jaxbDecoder.decode(response, type);
+                case "x-protobuf":
+                    return protobufDecoder.decode(response, type);
+                default:
+                    return defaultDecoder.decode(response, type);
             }
         }
-        return defaultDecoder.decode(response, type);
     }
 }
