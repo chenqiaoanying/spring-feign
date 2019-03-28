@@ -5,8 +5,8 @@ import okhttp3.MediaType;
 import java.util.Collection;
 import java.util.Map;
 
-class Utils {
-    static MediaType getMediaTypeFromHeaders(Map<String, Collection<String>> headers) {
+public class Utils {
+    public static MediaType getMediaTypeFromHeaders(Map<String, Collection<String>> headers) {
         return headers.entrySet().stream()
                 .filter(entry -> entry.getKey().toLowerCase().equals("content-type"))
                 .findFirst()

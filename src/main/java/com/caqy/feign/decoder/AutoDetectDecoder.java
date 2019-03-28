@@ -1,5 +1,6 @@
-package com.caqy.feign;
+package com.caqy.feign.decoder;
 
+import com.caqy.feign.Utils;
 import feign.FeignException;
 import feign.Response;
 import feign.Util;
@@ -21,16 +22,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Type;
-import java.util.Collection;
 
-class DefaultDecoder implements Decoder {
+public class AutoDetectDecoder implements Decoder {
 
     private Decoder jacksonDecoder;
     private Decoder jaxbDecoder;
     private Decoder protobufDecoder;
+    private Decoder htmlDecoder;
     private Decoder defaultDecoder;
 
-    private DefaultDecoder() {
+    private AutoDetectDecoder() {
         jacksonDecoder = new JacksonDecoder();
         JAXBContextFactory jaxbFactory = new JAXBContextFactory.Builder()
                 .withMarshallerJAXBEncoding("UTF-8")
@@ -74,14 +75,15 @@ class DefaultDecoder implements Decoder {
                 throw new DecodeException("Fail to decode in protobufDecoder", e);
             }
         };
+        htmlDecoder = new HtmlDecoder();
         defaultDecoder = new Decoder.Default();
     }
 
-    private static DefaultDecoder instance;
+    private static AutoDetectDecoder instance;
 
-    static DefaultDecoder getInstance() {
+    public static AutoDetectDecoder getInstance() {
         if (instance == null)
-            instance = new DefaultDecoder();
+            instance = new AutoDetectDecoder();
         return instance;
     }
 
@@ -98,6 +100,8 @@ class DefaultDecoder implements Decoder {
                     return jaxbDecoder.decode(response, type);
                 case "x-protobuf":
                     return protobufDecoder.decode(response, type);
+                case "html":
+                    return htmlDecoder.decode(response, type);
                 default:
                     return defaultDecoder.decode(response, type);
             }

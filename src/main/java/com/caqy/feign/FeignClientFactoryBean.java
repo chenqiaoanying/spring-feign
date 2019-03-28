@@ -1,5 +1,7 @@
 package com.caqy.feign;
 
+import com.caqy.feign.decoder.AutoDetectDecoder;
+import com.caqy.feign.encoder.AutoDetectEncoder;
 import feign.*;
 import feign.codec.Decoder;
 import feign.codec.Encoder;
@@ -18,10 +20,9 @@ public class FeignClientFactoryBean<T> implements FactoryBean<T> {
     private Class<T> feignClientInterface;
     private String url;
     private Feign.Builder feignBuilder;
-    private Decoder decoder = DefaultDecoder.getInstance();
-    private Encoder encoder = DefaultEncoder.getInstance();
+    private Decoder decoder = AutoDetectDecoder.getInstance();
+    private Encoder encoder = AutoDetectEncoder.getInstance();
     private boolean autoSetCookies = false;
-    private static final List<Cookie> COOKIES = new ArrayList<>();
 
     public FeignClientFactoryBean(Class<T> feignClientInterface) {
         this.feignClientInterface = feignClientInterface;
@@ -53,7 +54,7 @@ public class FeignClientFactoryBean<T> implements FactoryBean<T> {
                     .logger(new Slf4jLogger())
                     .logLevel(Logger.Level.FULL)
                     .decode404()
-                    .options(new Request.Options(1000, 3500))
+                    .options(new Request.Options(30000, 30000))
                     .retryer(new Retryer.Default(5000, 5000, 3));
         feignBuilder.encoder(encoder)
                 .decoder(decoder)
@@ -63,25 +64,8 @@ public class FeignClientFactoryBean<T> implements FactoryBean<T> {
 
     private Client getClient() {
         okhttp3.OkHttpClient.Builder clientBuilder = new okhttp3.OkHttpClient.Builder();
-        if (autoSetCookies) {
-            clientBuilder.cookieJar(new CookieJar() {
-                @Override
-                public void saveFromResponse(HttpUrl httpUrl, List<Cookie> list) {
-                    COOKIES.addAll(list);
-                }
-
-                @Override
-                public List<Cookie> loadForRequest(HttpUrl httpUrl) {
-                    List<Cookie> cookies = new ArrayList<>();
-                    for (Cookie cookie : COOKIES) {
-                        if (cookie.matches(httpUrl)) {
-                            cookies.add(cookie);
-                        }
-                    }
-                    return cookies;
-                }
-            });
-        }
+        if (autoSetCookies)
+            clientBuilder.cookieJar(AutoCookieJar.getInstance());
         return new OkHttpClient(clientBuilder.build());
     }
 

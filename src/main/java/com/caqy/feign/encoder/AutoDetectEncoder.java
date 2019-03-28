@@ -1,5 +1,6 @@
-package com.caqy.feign;
+package com.caqy.feign.encoder;
 
+import com.caqy.feign.Utils;
 import feign.Request;
 import feign.RequestTemplate;
 import feign.codec.EncodeException;
@@ -15,7 +16,7 @@ import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Type;
 
-class DefaultEncoder implements Encoder {
+public class AutoDetectEncoder implements Encoder {
 
     private Encoder jacksonEncoder;
     private Encoder jaxbEncoder;
@@ -23,7 +24,7 @@ class DefaultEncoder implements Encoder {
     private Encoder formEncoder;
     private Encoder defaultEncoder;
 
-    private DefaultEncoder() {
+    private AutoDetectEncoder() {
         jacksonEncoder = new JacksonEncoder();
         JAXBContextFactory jaxbFactory = new JAXBContextFactory.Builder()
                 .withMarshallerJAXBEncoding("UTF-8")
@@ -48,11 +49,11 @@ class DefaultEncoder implements Encoder {
         defaultEncoder = new Encoder.Default();
     }
 
-    private static DefaultEncoder instance;
+    private static AutoDetectEncoder instance;
 
-    static DefaultEncoder getInstance() {
+    public static AutoDetectEncoder getInstance() {
         if (instance == null)
-            instance = new DefaultEncoder();
+            instance = new AutoDetectEncoder();
         return instance;
     }
 
